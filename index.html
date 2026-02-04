@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Making People Happy | Jarno Alastalo</title>
+  <meta name="description" content="Teen teknologiasta ymmärrettävää – ja ihmisestä näkyvää. Jarno Alastalo.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://makingpeoplehappy.fi/">
+  <meta property="og:title" content="Making People Happy | Jarno Alastalo">
+  <meta property="og:description" content="Teen teknologiasta ymmärrettävää – ja ihmisestä näkyvää. Tulkki koneen ja ihmisen välillä.">
+  <meta property="og:image" content="https://makingpeoplehappy.fi/images/mphog.png">
+
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://makingpeoplehappy.fi/">
+  <meta property="twitter:title" content="Making People Happy | Jarno Alastalo">
+  <meta property="twitter:description" content="Teen teknologiasta ymmärrettävää – ja ihmisestä näkyvää. Tulkki koneen ja ihmisen välillä.">
+  <meta property="twitter:image" content="https://makingpeoplehappy.fi/images/mphog.png">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  
+  <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+  </script>
+
+  <style>
+    /* --- TYYLIT (CSS) --- */
+    :root {
+      --bg: #111113;         /* Syvä, melkein musta */
+      --ink: #e0e0e0;        /* Murrettu harmaa teksti */
+      --accent: #d4af37;     /* Himmeä kulta */
+      --orange: #ffbe3c;     /* Oranssinkeltainen brändiväri */
+      --card: #1a1a1d;       /* Korttien tausta */
+      --border: #333;        /* Reunukset */
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    
+    a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--accent); transition: 0.2s; }
+    a:hover { background: var(--accent); color: #000; }
+
+    /* Layout */
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+    
+    section { padding: 60px 0; position: relative; border-bottom: 1px solid var(--border); }
+
+    /* Typography */
+    h1, h2, h3 { font-family: "Space Grotesk", sans-serif; font-weight: 700; letter-spacing: -0.5px; }
+    
+    h1 {
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        line-height: 1.1;
+        margin: 0 0 24px;
+        color: #fff;
+    }
+    
+    .brand-title {
+        font-family: "Inter", sans-serif;
+        color: var(--orange);
+        font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+        margin: 0 0 16px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 700;
+        display: block;
+    }
+    
+    p.lead {
+        max-width: 65ch;
+        margin: 0 0 32px;
+        font-size: clamp(1.1rem, 1.5vw, 1.25rem);
+        line-height: 1.6;
+        font-weight: 300;
+        color: #ccc;
+    }
+
+    /* Hero */
+    .hero {
+        min-height: 80vh; 
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        border-bottom: none;
+        padding-bottom: 20px;
+    }
+    .hero-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; touch-action: pan-y; opacity: 0.6; }
+    .hero-content { position: relative; z-index: 1; pointer-events: none; }
+    .hero-content * { pointer-events: auto; }
+
+    /* Services Layout */
+    #palvelut { padding-top: 20px; }
+    
+    .grid-services { display: grid; gap: 40px; grid-template-columns: repeat(2, 1fr); margin-top: 40px; }
+    
+    @media (max-width: 768px) { 
+        .grid-services { grid-template-columns: 1fr; } 
+    }
+
+    .service-item {
+        background: rgba(255,255,255,0.02);
+        padding: 30px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+    }
+    .service-item h3 { margin-top: 0; font-size: 1.4rem; color: #fff; border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 8px; margin-bottom: 16px;}
+    .service-item p { font-size: 1rem; color: #bbb; margin-bottom: 16px; }
+    
+    .example-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.95rem;
+        color: #aaa;
+    }
+    .example-list li {
+        margin-bottom: 12px;
+        padding-left: 16px;
+        border-left: 2px solid #444;
+    }
+    .example-list strong { color: #e0e0e0; }
+
+    /* Why Me Layout */
+    .grid-whyme { 
+        display: grid; 
+        gap: 50px; 
+        grid-template-columns: 1fr 2fr; 
+        align-items: center; 
+        margin-top: 40px; 
+    }
+    
+    .jarno-image img {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+        border-radius: 8px; 
+        filter: grayscale(100%) contrast(1.1); 
+    }
+
+    @media (max-width: 768px) { 
+        .grid-whyme { grid-template-columns: 1fr; text-align: left; } 
+        .jarno-image img { max-width: 250px; margin-bottom: 20px; }
+    }
+    
+    .quote-box {
+        background: var(--accent);
+        color: #111;
+        padding: 30px;
+        border-radius: 4px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 1.1rem;
+        position: relative;
+        margin-top: 30px;
+    }
+    .quote-box::before { content: "”"; font-size: 4rem; position: absolute; top: -20px; left: 20px; opacity: 0.3; }
+
+    /* Book Section Layout */
+    .grid-book { display: grid; gap: 60px; grid-template-columns: 1fr 2fr; align-items: center; }
+    @media (max-width: 768px) { 
+        .grid-book { grid-template-columns: 1fr; text-align: center; } 
+        .book-image img { margin: 0 auto; display: block; }
+    }
+    .book-image img {
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        border-radius: 4px;
+        transition: transform 0.3s;
+    }
+    .book-image img:hover { transform: scale(1.02); }
+
+    /* Footer */
+    footer { padding: 80px 0; background: #0b0b0c; font-size: 1rem; color: #bbb; }
+    .contact-block { margin-top: 40px; }
+    .contact-block p { margin: 8px 0; }
+
+    /* Canvas specific */
+    #explodeCanvas { display: block; width: 100%; height: 200px; margin-top: -1px; }
+    
+    .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        margin-right: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--accent) !important; 
+    }
+    .btn:hover { background: var(--accent); color: #000; }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <div id="canvas-container" class="hero-canvas"></div> 
+    
+    <div class="container hero-content">
+      <span class="brand-title">Making People Happy</span>
+      
+      <h1>Teemme teknologiasta ymmärrettävää – ja ihmisestä näkyvää.</h1>
+      
+      <p class="lead">
+        Olen Jarno Alastalo, ja Making People Happy on yritykseni. Olen rakentanut mustia laatikoita ja nähnyt niiden sisäpuolen. Tiedän miten algoritmit ajattelevat – ja miten ihmiset käyttäytyvät niiden kanssa. Toimin tulkkina koneen ja ihmisen välillä.
+      </p>
+
+      <div style="margin-top: 32px;">
+        <a href="#palvelut" class="btn">Mitä teemme</a>
+        <a href="#yhteys" style="border-bottom: none; color: #fff; margin-left: 10px;">Ota yhteyttä &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="palvelut">
+    <div class="container">
+      <h2>Mitä teemme</h2>
+      
+      <div class="grid-services">
+        <div class="service-item">
+            <h3>1. Luennot ja puheenvuorot – erityisesti tekoälystä ja somesta</h3>
+            <p>Puhun tekoälystä tavalla, joka ei ole taikuutta eikä teknopuhepiiriä. Kerron miksi algoritmit tekevät mitä tekevät. Lisäksi minulla on vahva osaaminen digitaalisista yhteisöistä ja niiden dynamiikasta.</p>
+            
+            <p style="margin-bottom: 8px; color: #fff; font-weight: 600;">Esimerkkejä:</p>
+            <ul class="example-list">
+                <li><strong>Älyttömiä tekoja vai tekoälyä?</strong> (perustuu Musta laatikko -kirjaan)</li>
+                <li><strong>Digitaaliset identiteetit, yksinäisyys ja yhteisöt</strong><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Miten verkossa luodut identiteetit kohtaavat todellisen elämän? Miksi some ei poista yksinäisyyttä – ja miten digiyhteisöt voisivat tukea meitä autenttisesti?</span>
+                </li>
+                <li><strong>Digitalisaatio, ilmasto ja arki</strong><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Miten media- ja nuorisotyössä voi huomioida digitalisaation ympäristövaikutukset arkitasolla?</span>
+                </li>
+                <li><strong>Algoritmien musta laatikko</strong></li>
+            </ul>
+
+            <div style="margin-top: auto; padding-top: 20px;">
+                <a href="https://jarnoalastalo.com/" target="_blank" style="font-weight: 600; font-size: 0.95rem; color: var(--accent);">Lisää luennoista & referenssejä &rarr;</a>
+            </div>
+        </div>
+
+        <div class="service-item">
+            <h3>2. Koulutukset ja työpajat – tekoäly arkeen</h3>
+            <p>Järjestöille, kasvattajille, nuorisotyöntekijöille. Käytännönläheisiä työpajoja, joissa tekoäly muuttuu työkaluksi eikä uhkaksi. Opetan käyttämään tekoälyä viisaasti – ei sokeasti.</p>
+            
+            <p style="margin-bottom: 8px; color: #fff; font-weight: 600;">Esimerkkejä:</p>
+            <ul class="example-list">
+                <li><strong>Niukkuudesta voimavaraksi</strong><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Strateginen työpaja siitä, miten tekoäly vapauttaa aikaa hallinnosta ihmisten kohtaamiseen ja vaikuttamistyöhön.</span>
+                </li>
+                <li><strong>Kehittämiskumppanuudet</strong><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Pitkäkestoinen tuki yrityksille ja järjestöille (mm. ADHD-liitto, Monaliiku ry) tekoälyn jalkauttamisessa viestintään, hanke/rahoitushakuihin ja tiedolla johtamiseen.</span>
+                </li>
+                <li><strong>Nuorisotyön tekoälytyöpajat</strong><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Perustuen <em>80 näkökulmaa tekoälyyn</em> -oppaaseen: Miten tekoäly vaikuttaa nuorten identiteettiin ja arkeen?</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="service-item">
+            <h3>3. Digitaalisten yhteisöjen suunnittelu</h3>
+            <p>Olen rakentanut yhteisöjä, joissa miljoonat ihmiset kohtaavat. Tiedän mikä saa ihmiset jäämään, luottamaan ja palaamaan. Suunnittelen palveluita, joissa teknologia palvelee ihmistä – ei päinvastoin.</p>
+        </div>
+
+        <div class="service-item">
+            <h3>4. Sisällöntuotanto – videot ja pitkät formaatit</h3>
+            <p>Teen sisältöä, joka vie mukanaan. Haastatteluja, dokumentteja, oppaita. Kyky tiivistää monimutkainen ilmiö ymmärrettäväksi paketiksi.</p>
+            
+            <p style="margin-bottom: 8px; color: #fff; font-weight: 600;">Esimerkki:</p>
+            <ul class="example-list">
+                <li>
+                    <a href="https://mediakasvatus.fi/materiaali/nakokulmia_tekoalyyn_opas_nuorten_parissa_toimiville/" target="_blank" style="color: #fff; text-decoration: underline;">80 näkökulmaa tekoälyyn – opas nuorten parissa toimiville</a><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Ilmainen opas, joka perustuu 30+ asiantuntijahaastatteluun.</span>
+                </li>
+                <li>
+                    <a href="https://www.youtube.com/watch?v=x8AR0r6nD90&list=PLjB4rN4v0oefVYa1pUehlOczhbmpVM5hp" target="_blank" style="color: #fff; text-decoration: underline;">Tarinoita tilastojen takaa - nuorisotyöntekijät näkyväksi</a><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Videotuotanto.</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="service-item">
+            <h3>5. Ketterät verkkototeutukset (One-pagers)</h3>
+            <p>Ideasta valmiiksi verkkosivuksi – nopeasti. Toteutan visuaalisia ja toiminnallisia yhden sivun kokonaisuuksia (one-pagers), jotka toimivat kampanjasivuina, tietoraportteina tai konseptidemoina.</p>
+            
+            <p style="margin-bottom: 8px; color: #fff; font-weight: 600;">Esimerkki:</p>
+            <ul class="example-list">
+                <li>
+                    <a href="https://csy.fi/ai-energy-calculator/" target="_blank" style="color: #fff; text-decoration: underline;">AI Energy Calculator</a><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">Laskuri, joka havainnollistaa generatiivisen tekoälyn energiankulutusta.</span>
+                </li>
+            </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section id="miksi">
+    <div class="container">
+        <h2>Miksi minä?</h2>
+        
+        <div class="grid-whyme">
+            <div class="jarno-image">
+                <img src="images/jarno.png" alt="Jarno Alastalo">
+            </div>
+
+            <div>
+                <h3 style="margin-top: 0; color: #fff;">Jarno Alastalo</h3>
+                <p>En ole vain puhuja tekoälystä. Olen rakentanut Suomi24:n, Heimon, suunnitellut mustia laatikoita yrityksille. Olen nähnyt miten algoritmit muokkaavat tunteita, miten yhteisöt toimivat ja miten teknologia muuttaa ihmistä.</p>
+                <p>Kirjoitan kirjoja (Musta laatikko, Pimeä netti, Oudot tyypit, Sometarinoita Suomesta). Teen sisältöjä nuorille ja nuorisotyöntekijöille. Ja puhun niin, että se ymmärretään – ei niin että kuulostaa fiksulta.</p>
+                
+                <div class="quote-box">
+                    <p style="margin:0;">YLE Radio Suomen mukaan olen Suomen johtava kissavideoasiantuntija. Se kertoo jotain siitä, että ymmärrän mikä ihmisiä liikuttaa.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+  </section>
+
+  <section id="kirja" style="background: rgba(255,255,255,0.03);">
+    <div class="container">
+        <div class="grid-book">
+            <div class="book-image">
+                <img src="images/mustalaatikkokansi.jpg" alt="Musta laatikko -kirjan kansi" style="width: 100%; max-width: 320px; display: block;">
+            </div>
+            <div class="book-info">
+                <span style="color: var(--orange); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem;">Juuri ilmestynyt</span>
+                <h2 style="margin-top: 10px; margin-bottom: 16px; color: #fff;">Musta laatikko – tekoälyttömyyden ajan alku</h2>
+                <p>Olemme astuneet tekoälyttömyyden aikaan: joko tulemme älykkäiden koneiden tyhmiksi käyttäjiksi tai opimme käyttämään niitä viisaasti.</p>
+                <p>Tekoäly toimii mustassa laatikossa – järjestelmässä, jonka toimintaa emme näe, mutta jonka vaikutukset tunnemme. Tämä kirja on tutkimusmatka pinnan alle: miten algoritmit muokkaavat tunteitamme, valintojamme ja yhteisöjämme.</p>
+                <div style="margin-top: 24px;">
+                    <a href="https://avain.net/tuote/jarno-alastalo/musta-laatikko-teko%C3%A4lytt%C3%B6myyden-ajan-alku/9789523046559" target="_blank" class="btn">Tutustu ja tilaa</a>
+                </div>
+            </div>
+        </div>
+    </div>
+  </section>
+
+  <div style="background: #1a1a1d; overflow: hidden; height: 150px; border-top: 1px solid #333; border-bottom: 1px solid #333;">
+    <canvas id="explodeCanvas"></canvas>
+  </div>
+
+  <section id="yhteys" style="border-bottom: none;">
+    <div class="container">
+        <h2>Ota yhteyttä</h2>
+        
+        <div class="contact-block">
+            <p style="font-size: 1.2rem; font-weight: 700; color: #fff;">Jarno Alastalo</p>
+            <p><a href="mailto:jarno@makingpeoplehappy.fi" style="color: var(--accent); border-bottom: 1px solid var(--accent);">jarno@makingpeoplehappy.fi</a></p>
+            <p style="margin-top: 8px;">
+                <a href="https://www.linkedin.com/in/alastalo/" target="_blank" style="color: #bbb; text-decoration: underline;">LinkedIn</a>
+            </p>
+            <p style="margin-top: 24px; color: #eee;">Haluatko kuulla lisää? Laita viestiä. Vastaan.</p>
+        </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+        <p>&copy; 2026 MPH Making People Happy</p>
+        <p style="opacity: 0.6; font-size: 0.9rem;">Y-tunnus: 2578992-5</p>
+    </div>
+  </footer>
+
+  <script type="module">
+        import * as THREE from 'three';
+
+        // 1. Scene & Camera
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x111113, 0.02); // Tumma sumu
+
+        const container = document.getElementById('canvas-container');
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 0, 50);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // 2. Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xd4af37, 1.5); // Kulta
+        dirLight.position.set(10, 10, 10);
+        scene.add(dirLight);
+        
+        const blueLight = new THREE.PointLight(0x4a90e2, 1, 50); // Sininen vastavalo
+        blueLight.position.set(-10, -5, 10);
+        scene.add(blueLight);
+
+        // 3. Swarm (Algoritmi-parvi)
+        const geometry = new THREE.IcosahedronGeometry(0.4, 0);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x888888,
+            roughness: 0.4,
+            metalness: 0.6
+        });
+
+        const swarmGroup = new THREE.Group();
+        const particles = [];
+        
+        for (let i = 0; i < 90; i++) {
+            const mesh = new THREE.Mesh(geometry, material.clone());
+            
+            // Levitellään hieman laajemmalle
+            mesh.position.set(
+                (Math.random() - 0.5) * 35,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 15
+            );
+            
+            // Osa partikkeleista kultaisia (data-hippuja)
+            if (Math.random() > 0.85) {
+                mesh.material.color.setHex(0xd4af37); 
+                mesh.material.emissive.setHex(0x332200);
+            }
+            
+            mesh.userData = {
+                speed: 0.01 + Math.random() * 0.02,
+                offset: Math.random() * Math.PI * 2
+            };
+            
+            swarmGroup.add(mesh);
+            particles.push(mesh);
+        }
+        scene.add(swarmGroup);
+
+        // 4. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+
+            // Koko ryhmä pyörii hitaasti
+            swarmGroup.rotation.y = time * 0.08;
+            swarmGroup.rotation.z = Math.sin(time * 0.1) * 0.05;
+
+            // Partikkelien liike
+            particles.forEach((p, i) => {
+                p.position.y += Math.sin(time + p.userData.offset) * 0.02;
+                p.rotation.x += p.userData.speed;
+                p.rotation.y += p.userData.speed;
+            });
+
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        animate();
+    </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    (function(){
+      const cvs = document.getElementById('explodeCanvas'); if(!cvs) return;
+      const ren = new THREE.WebGLRenderer({canvas:cvs, antialias:true, alpha:true});
+      const scn = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 50); 
+      cam.position.set(0, 0, 10); 
+
+      const pts = [];
+      const count = 300;
+      for(let i=0; i<count; i++) {
+        pts.push((Math.random()-0.5)*30, (Math.random()-0.5)*10, (Math.random()-0.5)*5);
+      }
+      
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+      
+      const mat = new THREE.PointsMaterial({
+          color: 0x444444,
+          size: 0.1,
+          transparent: true,
+          opacity: 0.8
+      });
+      
+      const starSystem = new THREE.Points(geo, mat);
+      scn.add(starSystem);
+      
+      function rsz(){ 
+          const r = cvs.parentElement.getBoundingClientRect(); 
+          ren.setSize(r.width, 150, false); 
+          cam.aspect = r.width / 150; 
+          cam.updateProjectionMatrix(); 
+      }
+      window.addEventListener('resize', rsz); rsz();
+      
+      function tick(){ 
+          requestAnimationFrame(tick); 
+          starSystem.rotation.x += 0.001;
+          starSystem.position.x = Math.sin(Date.now()*0.0005) * 2;
+          ren.render(scn, cam); 
+      } 
+      tick();
+    })();
+  </script>
+</body>
+</html>
