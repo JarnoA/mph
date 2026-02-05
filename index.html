@@ -402,10 +402,26 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // --- SHADERS (Lehtien liike ja väritys) ---
+    // --- ASETTELU (SIIRRETÄÄN NÄKYMÄÄ, EI PUUTA) ---
+    // Positiivinen X = Puu siirtyy vasemmalle
+    // Negatiivinen X = Puu siirtyy oikealle (Tätä haluamme desktopilla)
+    // Positiivinen Y = Puu siirtyy ylös
+    // Negatiivinen Y = Puu siirtyy alas (Tätä haluamme mobiilissa)
+    const CONFIG = {
+        desktop: {
+            offsetX: -0.25, // Siirrä puuta oikealle 25% ruudun leveydestä
+            offsetY: 0.0    // Pidetään pystysuunnassa keskellä
+        },
+        mobile: {
+            offsetX: 0.0,   // Sivusuunnassa keskellä
+            offsetY: -0.2   // Siirrä puuta alas 20% ruudun korkeudesta
+        }
+    };
+
+    // --- SHADERS ---
     const leavesVS = `
         uniform sampler2D uNoiseMap;
-        uniform vec3 uBoxMin, uBoxSize, uRaycast;
+        uniform vec3 uBoxMin, uBoxSize;
         uniform float uTime;
         varying vec3 vObjectPos, vNormal, vWorldNormal; 
         varying float vCloseToGround;
@@ -420,18 +436,21 @@
         }
         
         void main(){
-            mat4 mouseDisplace = mat4(1.);
-            vec3 vWorldPos = vec3(modelMatrix * instanceMatrix * mouseDisplace * vec4(position, 1.));
+            vec3 vWorldPos = vec3(modelMatrix * instanceMatrix * vec4(position, 1.));
+            
+            // TÄMÄ oli se ongelmakohta: Nyt kun puu on aina y=-2, tämä toimii aina oikein!
             vCloseToGround = clamp(vWorldPos.y, 0., 1.);
-            float offset = clamp(0.8 - distance(uRaycast, instanceMatrix[3].xyz), 0., 999.); 
-            offset = (pow(offset, 0.8) / 2.0) * vCloseToGround;
-            mouseDisplace[3].xyz = vec3(offset);
-            vNormal = normalMatrix * mat3(instanceMatrix) * mat3(mouseDisplace) * normalize(normal); 
-            vWorldNormal = vec3(modelMatrix * instanceMatrix * mouseDisplace * vec4(normal, 0.));
+            
+            vNormal = normalMatrix * mat3(instanceMatrix) * normalize(normal); 
+            vWorldNormal = vec3(modelMatrix * instanceMatrix * vec4(normal, 0.));
+            
             vObjectPos = ((vWorldPos - uBoxMin) * 2.) / uBoxSize - vec3(1.0); 
+            
             vec4 noiseOffset = getTriplanar(uNoiseMap) * vCloseToGround; 
-            vec4 newPos = instanceMatrix * mouseDisplace * vec4(position, 1.); 
-            newPos.xyz = newPos.xyz + noiseOffset.xyz;
+            vec4 newPos = instanceMatrix * vec4(position, 1.); 
+            
+            newPos.xyz = newPos.xyz + (noiseOffset.xyz * 0.8);
+            
             gl_Position =  projectionMatrix * modelViewMatrix * newPos;
         }
     `;
@@ -440,7 +459,6 @@
         #include <common> 
         #include <lights_pars_begin>
         uniform vec3 uColorA, uColorB, uColorC;
-        uniform float uTime;
         varying vec3 vObjectPos, vNormal, vWorldNormal; 
         varying float vCloseToGround;
         
@@ -451,8 +469,7 @@
         }
 
         float getPosColors(){
-            float p = 0.;
-            p = smoothstep(0.2, 0.8, distance(vec3(0.), vObjectPos));
+            float p = smoothstep(0.2, 0.8, distance(vec3(0.), vObjectPos));
             p = p * (-(vWorldNormal.g / 2.) + 0.5) * (- vObjectPos.y / 9. + 0.5); 
             return p;
         }
@@ -460,8 +477,7 @@
             float intensity;
             for (int i = 0; i < directionalLights.length(); i++){
                 intensity = dot(directionalLights[i].direction, vNormal);
-                intensity = smoothstep(0.55, 1., intensity) * 0.2 
-                        + pow(smoothstep(0.55, 1., intensity), 0.5);
+                intensity = smoothstep(0.55, 1., intensity) * 0.2 + pow(smoothstep(0.55, 1., intensity), 0.5);
             }
             return intensity;
         }
@@ -473,16 +489,16 @@
         }
     `;
 
-    // --- SETUP ---
     const container = document.getElementById('canvas-container');
     
     if (container) {
         const scene = new THREE.Scene();
-        // Sumu häivyttää puun juuren nätisti mustaan taustaan
-        scene.fog = new THREE.FogExp2(0x111113, 0.04); 
+        scene.fog = new THREE.FogExp2(0x111113, 0.025); 
 
         const loader = new GLTFLoader();
-        const camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
+        
+        // FOV 25: Sopiva teleobjektiivi, ei vääristä mutta on syvyyttä
+        const camera = new THREE.PerspectiveCamera(25, container.clientWidth / container.clientHeight, 0.1, 1000);
         
         const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -491,25 +507,18 @@
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
-        controls.enableZoom = false; // Estetään zoomailu, jotta sivu pysyy selkeänä
-        controls.enablePan = false;
+        controls.autoRotate = true;       
+        controls.autoRotateSpeed = 0.8;   
+        controls.enableRotate = false;    
+        controls.enableZoom = false;      
+        controls.enablePan = false;       
 
-        // Asemointi: Kamera kauemmas ja puu sopivaan kohtaan
-        camera.position.set(-8, 2, -14);
-        controls.target = new THREE.Vector3(0, 4, 0);
+        // VALOT
+        const mainLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        mainLight.position.set(3, 10, -3);
+        scene.add(mainLight);
+        scene.add(new THREE.AmbientLight(0x404040, 3.5)); 
 
-        // --- COLORS & LIGHTS ---
-        const dlight01 = new THREE.DirectionalLight(0xffffff, 1.5);
-        dlight01.position.set(3, 10, -3);
-        dlight01.lookAt(0, 0, 0);
-        scene.add(dlight01);
-        
-        const ambientLight = new THREE.AmbientLight(0x404040, 2); // Pehmeä yleisvalo
-        scene.add(ambientLight);
-
-        // Ladataan tekstuurit (GitHubista, kuten alkuperäisessä)
         const noiseMap = new THREE.TextureLoader().load('https://raw.githubusercontent.com/ceramicSoda/treeshader/main/assets/noise.png');
         noiseMap.wrapS = THREE.RepeatWrapping;
         noiseMap.wrapT = THREE.RepeatWrapping;
@@ -520,41 +529,33 @@
         const dummy = new THREE.Object3D();
         const matrix = new THREE.Matrix4();
         
-        // --- MATERIALS ---
-        // Brändivärit: Musta, Tumma kulta, Vaalea kulta
+        // MATERIAALIT
         const leavesMat = new THREE.ShaderMaterial({
             lights: true,
             side: THREE.DoubleSide,
             uniforms: {
                 ...THREE.UniformsLib.lights,
                 uTime: {value: 0.},
-                // VÄRIT TÄSSÄ:
-                uColorA: {value: new THREE.Color(0x050505)}, // Melkein musta
-                uColorB: {value: new THREE.Color(0x8a7000)}, // Tumma kulta
-                uColorC: {value: new THREE.Color(0xd4af37)}, // Kirkas kulta
+                uColorA: {value: new THREE.Color(0x050505)}, 
+                uColorB: {value: new THREE.Color(0x8a7000)}, 
+                uColorC: {value: new THREE.Color(0xd4af37)}, 
                 uBoxMin: {value: new THREE.Vector3(0,0,0)},
                 uBoxSize: {value: new THREE.Vector3(10,10,10)},
-                uRaycast: {value: new THREE.Vector3(0,0,0)},
                 uNoiseMap: {value: noiseMap},
             },
             vertexShader: leavesVS,
             fragmentShader: leavesFS,
         });
 
-        // --- LOAD TREE ---
+        // PUUN LATAUS
         let treeData = {};
 
         loader.loadAsync("https://raw.githubusercontent.com/ceramicSoda/treeshader/main/assets/tree.glb")
         .then(obj => {
             const pole = obj.scene.getObjectByName("Pole");
-            // Tehdään rungosta tummanharmaa
             pole.material = new THREE.MeshStandardMaterial({color: 0x222222, roughness: 0.8});
             
             const crown = obj.scene.getObjectByName("Leaves");
-            const bbox = new THREE.Box3().setFromObject(crown);
-            
-            leavesMat.uniforms.uBoxMin.value.copy(bbox.min); 
-            leavesMat.uniforms.uBoxSize.value.copy(bbox.getSize(new THREE.Vector3())); 
             
             treeData.leavesCount = crown.geometry.attributes.position.count;
             treeData.deadID = []; 
@@ -570,7 +571,6 @@
                     dummy.position.y + crown.geometry.attributes.normal.array[i*3+1],
                     dummy.position.z + crown.geometry.attributes.normal.array[i*3+2]
                 );
-                // Satunnainen koko lehdille
                 const s = Math.random() * 0.5 + 0.5;
                 dummy.scale.set(s,s,s);
                 dummy.updateMatrix();
@@ -578,39 +578,71 @@
             }
             
             treeGroup.add(pole, treeData.leaves);
-            treeGroup.position.y = -2; // Lasketaan puuta vähän alemmas
             
-            // Aloita lehtien tiputtelu
+            // ASETA PUU KESKELLE (Paras paikka shaderille)
+            treeGroup.position.set(0, -2, 0);
+
+            // Aseta näkymän siirto
+            updateViewOffset();
+
+            treeGroup.updateMatrixWorld(true);
+            const bbox = new THREE.Box3().setFromObject(treeGroup);
+            leavesMat.uniforms.uBoxMin.value.copy(bbox.min); 
+            leavesMat.uniforms.uBoxSize.value.copy(bbox.getSize(new THREE.Vector3())); 
+            
             killRandom();
         });
 
-        // --- ANIMATION ---
+        // --- NÄKYMÄN SIIRTO (View Offset) ---
+        function updateViewOffset() {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const isMobile = width < 900;
+            
+            const conf = isMobile ? CONFIG.mobile : CONFIG.desktop;
+
+            // Kamera pysyy aina samassa paikassa suhteessa puuhun!
+            camera.position.set(0, 2, -35);
+            controls.target.set(0, 4, 0);
+            
+            // "Lens Shift" - Siirretään kuvaa vääristämättä perspektiiviä
+            // viewOffset toimii pikseleissä, joten kerrotaan suhdeluvulla
+            camera.setViewOffset(
+                width, 
+                height, 
+                width * conf.offsetX,   // X offset
+                height * conf.offsetY,  // Y offset
+                width, 
+                height
+            );
+            
+            camera.updateProjectionMatrix();
+        }
+
         function killRandom() {
-            if (treeData.deadID)
-                treeData.deadID.push(Math.floor(Math.random() * treeData.leavesCount)); 
-            setTimeout(killRandom, Math.random() * 1000 + 500); // Harvennetaan putoamista
+            if (treeData.deadID) treeData.deadID.push(Math.floor(Math.random() * treeData.leavesCount)); 
+            setTimeout(killRandom, Math.random() * 1000 + 500); 
         }
 
         function animate() {
             requestAnimationFrame(animate);
             leavesMat.uniforms.uTime.value += 0.01; 
 
-            // Putoavien lehtien logiikka
             if (treeData.deadID && treeData.leaves){
                 treeData.deadID = treeData.deadID.filter(i => {
                     treeData.leaves.getMatrixAt(i, matrix);
                     matrix.decompose(dummy.position, dummy.rotation, dummy.scale);
                     
-                    if (dummy.position.y > -5) { // Jos lehti ei ole vielä maassa
-                        dummy.position.y -= 0.03; // Putoamisnopeus
+                    if (dummy.position.y > -5) { 
+                        dummy.position.y -= 0.03; 
                         dummy.position.x += Math.sin(leavesMat.uniforms.uTime.value + i) * 0.01;
-                        dummy.rotation.x += 0.05;
+                        dummy.rotation.x += 0.05; 
                         dummy.rotation.y += 0.05;
                         dummy.updateMatrix();
                         treeData.leaves.setMatrixAt(i, dummy.matrix);
                         return true;
                     }
-                    return false; // Poista listalta jos "maan alla"
+                    return false; 
                 });
                 treeData.leaves.instanceMatrix.needsUpdate = true; 
             } 
@@ -619,12 +651,13 @@
             renderer.render(scene, camera); 
         }
 
-        // --- RESIZE ---
         window.addEventListener("resize", () => {
             if (!container) return;
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
+            // Päivitä renderer
             renderer.setSize(container.clientWidth, container.clientHeight);
+            // Päivitä kameran kuvasuhde ja OFFSETIT
+            camera.aspect = container.clientWidth / container.clientHeight;
+            updateViewOffset();
         });
 
         animate();
@@ -638,7 +671,7 @@
       const cvs = document.getElementById('explodeCanvas'); if(!cvs) return;
       const ren = new THREE.WebGLRenderer({canvas:cvs, antialias:true, alpha:true});
       const scn = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 50); 
+      const cam = new THREE.PerspectiveCamera(5, 1, 0.1, 50); 
       cam.position.set(0, 0, 10); 
 
       const pts = [];
